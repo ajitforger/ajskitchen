@@ -1,0 +1,434 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "Restaurant owner workspace profile and preferences.",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "restaurantName": {
+          "type": "string",
+          "maxLength": 120,
+          "minLength": 1
+        },
+        "ownerName": {
+          "type": "string",
+          "maxLength": 100,
+          "minLength": 1
+        },
+        "currency": {
+          "type": "string",
+          "enum": ["INR", "USD"]
+        },
+        "seededDefaults": {
+          "type": "boolean"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["uid", "restaurantName", "ownerName", "currency", "seededDefaults", "createdAt", "updatedAt"]
+    },
+    "MenuItem": {
+      "title": "MenuItem",
+      "description": "South Indian menu item with recipe costing and margin metrics.",
+      "type": "object",
+      "properties": {
+        "ownerId": {
+          "type": "string",
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "name": {
+          "type": "string",
+          "maxLength": 120,
+          "minLength": 1
+        },
+        "regionalName": {
+          "type": "string",
+          "maxLength": 120
+        },
+        "category": {
+          "type": "string",
+          "enum": ["Tiffin & Dosas", "Meals & Rice", "Curries & Sides", "Filter Coffee & Drinks", "Sweets & Bakery"]
+        },
+        "sellingPrice": {
+          "type": "number"
+        },
+        "recipeCost": {
+          "type": "number"
+        },
+        "packagingCost": {
+          "type": "number"
+        },
+        "prepMinutes": {
+          "type": "number"
+        },
+        "monthlyUnits": {
+          "type": "number"
+        },
+        "imageKey": {
+          "type": "string",
+          "maxLength": 64
+        },
+        "ingredients": {
+          "type": "array",
+          "description": "Bounded list of up to 20 recipe ingredient entries."
+        },
+        "status": {
+          "type": "string",
+          "enum": ["active", "seasonal", "archived"]
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["ownerId", "name", "regionalName", "category", "sellingPrice", "recipeCost", "packagingCost", "prepMinutes", "monthlyUnits", "imageKey", "ingredients", "status", "createdAt", "updatedAt"]
+    },
+    "Vendor": {
+      "title": "Vendor",
+      "description": "Ingredient and kitchen supply vendor record.",
+      "type": "object",
+      "properties": {
+        "ownerId": {
+          "type": "string",
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "name": {
+          "type": "string",
+          "maxLength": 120,
+          "minLength": 1
+        },
+        "category": {
+          "type": "string",
+          "enum": ["Grains & Pulses", "Dairy & Ghee", "Produce & Coconut", "Coffee & Spices", "Fuel & Packaging"]
+        },
+        "contactPerson": {
+          "type": "string",
+          "maxLength": 100
+        },
+        "phone": {
+          "type": "string",
+          "maxLength": 32
+        },
+        "paymentTerms": {
+          "type": "string",
+          "enum": ["COD", "Net 7", "Net 15", "Net 30"]
+        },
+        "outstandingBalance": {
+          "type": "number"
+        },
+        "totalPurchases": {
+          "type": "number"
+        },
+        "lastOrderDate": {
+          "type": "string",
+          "maxLength": 20
+        },
+        "notes": {
+          "type": "string",
+          "maxLength": 400
+        },
+        "status": {
+          "type": "string",
+          "enum": ["active", "paused", "archived"]
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["ownerId", "name", "category", "contactPerson", "phone", "paymentTerms", "outstandingBalance", "totalPurchases", "lastOrderDate", "notes", "status", "createdAt", "updatedAt"]
+    },
+    "LedgerEntry": {
+      "title": "LedgerEntry",
+      "description": "Financial cashflow entry for money management.",
+      "type": "object",
+      "properties": {
+        "ownerId": {
+          "type": "string",
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "title": {
+          "type": "string",
+          "maxLength": 160,
+          "minLength": 1
+        },
+        "entryType": {
+          "type": "string",
+          "enum": ["income", "expense"]
+        },
+        "category": {
+          "type": "string",
+          "maxLength": 64,
+          "minLength": 1
+        },
+        "amount": {
+          "type": "number"
+        },
+        "paymentMethod": {
+          "type": "string",
+          "enum": ["UPI / QR", "Cash", "Bank Transfer", "Card Settlement", "Aggregator Payout"]
+        },
+        "entryDate": {
+          "type": "string",
+          "maxLength": 20,
+          "minLength": 4
+        },
+        "vendorId": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "notes": {
+          "type": "string",
+          "maxLength": 400
+        },
+        "status": {
+          "type": "string",
+          "enum": ["cleared", "pending", "voided"]
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["ownerId", "title", "entryType", "category", "amount", "paymentMethod", "entryDate", "vendorId", "notes", "status", "createdAt", "updatedAt"]
+    },
+    "PlannerTask": {
+      "title": "PlannerTask",
+      "description": "Kitchen prep, fermentation, shift, and procurement planner task.",
+      "type": "object",
+      "properties": {
+        "ownerId": {
+          "type": "string",
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "title": {
+          "type": "string",
+          "maxLength": 160,
+          "minLength": 1
+        },
+        "station": {
+          "type": "string",
+          "enum": ["Dosa & Tawa", "Batter & Grinding", "Sambar & Chutneys", "Filter Coffee", "Procurement & Floor"]
+        },
+        "taskType": {
+          "type": "string",
+          "enum": ["Batter Prep", "Shift Roster", "Vendor Delivery", "Catering Prep", "Maintenance"]
+        },
+        "scheduledDate": {
+          "type": "string",
+          "maxLength": 20,
+          "minLength": 4
+        },
+        "scheduledTime": {
+          "type": "string",
+          "maxLength": 20,
+          "minLength": 1
+        },
+        "assignee": {
+          "type": "string",
+          "maxLength": 80
+        },
+        "priority": {
+          "type": "string",
+          "enum": ["high", "medium", "low"]
+        },
+        "notes": {
+          "type": "string",
+          "maxLength": 400
+        },
+        "status": {
+          "type": "string",
+          "enum": ["planned", "in_progress", "completed"]
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["ownerId", "title", "station", "taskType", "scheduledDate", "scheduledTime", "assignee", "priority", "notes", "status", "createdAt", "updatedAt"]
+    },
+    "CalcScenario": {
+      "title": "CalcScenario",
+      "description": "Saved sales, profit, break-even, or catering calculation scenario.",
+      "type": "object",
+      "properties": {
+        "ownerId": {
+          "type": "string",
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "name": {
+          "type": "string",
+          "maxLength": 120,
+          "minLength": 1
+        },
+        "calculatorType": {
+          "type": "string",
+          "enum": ["Daily Profit", "Break-Even", "Menu Pricing", "Catering Quote", "Batter Yield"]
+        },
+        "inputsSummary": {
+          "type": "string",
+          "maxLength": 300
+        },
+        "projectedRevenue": {
+          "type": "number"
+        },
+        "projectedProfit": {
+          "type": "number"
+        },
+        "marginPercent": {
+          "type": "number"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["ownerId", "name", "calculatorType", "inputsSummary", "projectedRevenue", "projectedProfit", "marginPercent", "createdAt", "updatedAt"]
+    },
+    "PosOrder": {
+      "title": "PosOrder",
+      "description": "Point-of-sale order ticket and Kitchen Order Ticket (KOT) for dine-in, parcel, or counter service.",
+      "type": "object",
+      "properties": {
+        "ownerId": {
+          "type": "string",
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "orderNumber": {
+          "type": "string",
+          "maxLength": 32,
+          "minLength": 1
+        },
+        "orderType": {
+          "type": "string",
+          "enum": ["dine_in", "parcel", "catering_counter"]
+        },
+        "tableLabel": {
+          "type": "string",
+          "maxLength": 32
+        },
+        "customerName": {
+          "type": "string",
+          "maxLength": 100
+        },
+        "items": {
+          "type": "array",
+          "description": "Bounded list of up to 40 POS order line items."
+        },
+        "subtotal": {
+          "type": "number"
+        },
+        "packagingTotal": {
+          "type": "number"
+        },
+        "discountAmount": {
+          "type": "number"
+        },
+        "taxRate": {
+          "type": "number"
+        },
+        "taxAmount": {
+          "type": "number"
+        },
+        "grandTotal": {
+          "type": "number"
+        },
+        "paymentMethod": {
+          "type": "string",
+          "enum": ["UPI / QR", "Cash", "Bank Transfer", "Card Settlement", "Aggregator Payout"]
+        },
+        "kitchenNotes": {
+          "type": "string",
+          "maxLength": 300
+        },
+        "status": {
+          "type": "string",
+          "enum": ["kot_open", "preparing", "ready", "paid", "cancelled"]
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["ownerId", "orderNumber", "orderType", "tableLabel", "customerName", "items", "subtotal", "packagingTotal", "discountAmount", "taxRate", "taxAmount", "grandTotal", "paymentMethod", "kitchenNotes", "status", "createdAt", "updatedAt"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/UserProfile" },
+      "description": "Private restaurant workspace profile keyed by authenticated user UID."
+    },
+    "/menuItems/{itemId}": {
+      "schema": { "$ref": "#/entities/MenuItem" },
+      "description": "South Indian menu dishes and recipe ingredient costs owned by ownerId."
+    },
+    "/vendors/{vendorId}": {
+      "schema": { "$ref": "#/entities/Vendor" },
+      "description": "Restaurant ingredient suppliers and payable balances owned by ownerId."
+    },
+    "/ledgerEntries/{entryId}": {
+      "schema": { "$ref": "#/entities/LedgerEntry" },
+      "description": "Restaurant income and expense ledger entries owned by ownerId."
+    },
+    "/plannerTasks/{taskId}": {
+      "schema": { "$ref": "#/entities/PlannerTask" },
+      "description": "Kitchen prep, batter fermentation, and shift planning tasks owned by ownerId."
+    },
+    "/calcScenarios/{scenarioId}": {
+      "schema": { "$ref": "#/entities/CalcScenario" },
+      "description": "Saved sales, profit, and catering calculation scenarios owned by ownerId."
+    },
+    "/posOrders/{orderId}": {
+      "schema": { "$ref": "#/entities/PosOrder" },
+      "description": "POS order tickets, kitchen KOTs, and settled bills owned by ownerId."
+    }
+  }
+}

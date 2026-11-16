@@ -1,0 +1,6 @@
+{
+  "name": "Dakshin Ledger",
+  "description": "South Indian restaurant operations, menu costing, vendor payables, financial ledger, profit calculators, and kitchen planner.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

@@ -1,0 +1,352 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Global default-deny safety net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Core Security Primitives
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isVerifiedUser() {
+      return isSignedIn() && request.auth.token.email_verified == true;
+    }
+
+    function isNumber(v) {
+      return v is int || v is float;
+    }
+
+    function isStr(v, minLen, maxLen) {
+      return v is string && v.size() >= minLen && v.size() <= maxLen;
+    }
+
+    function isValidIngredient(item) {
+      return item is map
+        && item.keys().hasAll(['name', 'qty', 'unitCost'])
+        && item.keys().hasOnly(['name', 'qty', 'unitCost'])
+        && isStr(item.name, 1, 80)
+        && isStr(item.qty, 1, 40)
+        && isNumber(item.unitCost) && item.unitCost >= 0 && item.unitCost <= 100000;
+    }
+
+    // Validation Blueprints
+    function isValidUserProfile(data) {
+      return data.keys().hasAll(['uid', 'restaurantName', 'ownerName', 'currency', 'seededDefaults', 'createdAt', 'updatedAt'])
+        && data.keys().hasOnly(['uid', 'restaurantName', 'ownerName', 'currency', 'seededDefaults', 'createdAt', 'updatedAt'])
+        && isValidId(data.uid)
+        && data.uid == request.auth.uid
+        && isStr(data.restaurantName, 1, 120)
+        && isStr(data.ownerName, 1, 100)
+        && data.currency in ['INR', 'USD']
+        && data.seededDefaults is bool
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidMenuItem(data) {
+      return data.keys().hasAll(['ownerId', 'name', 'regionalName', 'category', 'sellingPrice', 'recipeCost', 'packagingCost', 'prepMinutes', 'monthlyUnits', 'imageKey', 'ingredients', 'status', 'createdAt', 'updatedAt'])
+        && data.keys().hasOnly(['ownerId', 'name', 'regionalName', 'category', 'sellingPrice', 'recipeCost', 'packagingCost', 'prepMinutes', 'monthlyUnits', 'imageKey', 'ingredients', 'status', 'createdAt', 'updatedAt'])
+        && isValidId(data.ownerId)
+        && data.ownerId == request.auth.uid
+        && isStr(data.name, 1, 120)
+        && isStr(data.regionalName, 0, 120)
+        && data.category in ['Tiffin & Dosas', 'Meals & Rice', 'Curries & Sides', 'Filter Coffee & Drinks', 'Sweets & Bakery']
+        && isNumber(data.sellingPrice) && data.sellingPrice >= 0 && data.sellingPrice <= 1000000
+        && isNumber(data.recipeCost) && data.recipeCost >= 0 && data.recipeCost <= 1000000
+        && isNumber(data.packagingCost) && data.packagingCost >= 0 && data.packagingCost <= 100000
+        && isNumber(data.prepMinutes) && data.prepMinutes >= 0 && data.prepMinutes <= 1440
+        && isNumber(data.monthlyUnits) && data.monthlyUnits >= 0 && data.monthlyUnits <= 1000000
+        && isStr(data.imageKey, 0, 64)
+        && data.ingredients is list
+        && data.ingredients.size() <= 20
+        && (data.ingredients.size() == 0 || isValidIngredient(data.ingredients[0]))
+        && data.status in ['active', 'seasonal', 'archived']
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidVendor(data) {
+      return data.keys().hasAll(['ownerId', 'name', 'category', 'contactPerson', 'phone', 'paymentTerms', 'outstandingBalance', 'totalPurchases', 'lastOrderDate', 'notes', 'status', 'createdAt', 'updatedAt'])
+        && data.keys().hasOnly(['ownerId', 'name', 'category', 'contactPerson', 'phone', 'paymentTerms', 'outstandingBalance', 'totalPurchases', 'lastOrderDate', 'notes', 'status', 'createdAt', 'updatedAt'])
+        && isValidId(data.ownerId)
+        && data.ownerId == request.auth.uid
+        && isStr(data.name, 1, 120)
+        && data.category in ['Grains & Pulses', 'Dairy & Ghee', 'Produce & Coconut', 'Coffee & Spices', 'Fuel & Packaging']
+        && isStr(data.contactPerson, 0, 100)
+        && isStr(data.phone, 0, 32)
+        && data.paymentTerms in ['COD', 'Net 7', 'Net 15', 'Net 30']
+        && isNumber(data.outstandingBalance) && data.outstandingBalance >= 0 && data.outstandingBalance <= 100000000
+        && isNumber(data.totalPurchases) && data.totalPurchases >= 0 && data.totalPurchases <= 1000000000
+        && isStr(data.lastOrderDate, 0, 20)
+        && isStr(data.notes, 0, 400)
+        && data.status in ['active', 'paused', 'archived']
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidLedgerEntry(data) {
+      return data.keys().hasAll(['ownerId', 'title', 'entryType', 'category', 'amount', 'paymentMethod', 'entryDate', 'vendorId', 'notes', 'status', 'createdAt', 'updatedAt'])
+        && data.keys().hasOnly(['ownerId', 'title', 'entryType', 'category', 'amount', 'paymentMethod', 'entryDate', 'vendorId', 'notes', 'status', 'createdAt', 'updatedAt'])
+        && isValidId(data.ownerId)
+        && data.ownerId == request.auth.uid
+        && isStr(data.title, 1, 160)
+        && data.entryType in ['income', 'expense']
+        && isStr(data.category, 1, 64)
+        && isNumber(data.amount) && data.amount > 0 && data.amount <= 100000000
+        && data.paymentMethod in ['UPI / QR', 'Cash', 'Bank Transfer', 'Card Settlement', 'Aggregator Payout']
+        && isStr(data.entryDate, 4, 20)
+        && isStr(data.vendorId, 0, 128)
+        && isStr(data.notes, 0, 400)
+        && data.status in ['cleared', 'pending', 'voided']
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidPlannerTask(data) {
+      return data.keys().hasAll(['ownerId', 'title', 'station', 'taskType', 'scheduledDate', 'scheduledTime', 'assignee', 'priority', 'notes', 'status', 'createdAt', 'updatedAt'])
+        && data.keys().hasOnly(['ownerId', 'title', 'station', 'taskType', 'scheduledDate', 'scheduledTime', 'assignee', 'priority', 'notes', 'status', 'createdAt', 'updatedAt'])
+        && isValidId(data.ownerId)
+        && data.ownerId == request.auth.uid
+        && isStr(data.title, 1, 160)
+        && data.station in ['Dosa & Tawa', 'Batter & Grinding', 'Sambar & Chutneys', 'Filter Coffee', 'Procurement & Floor']
+        && data.taskType in ['Batter Prep', 'Shift Roster', 'Vendor Delivery', 'Catering Prep', 'Maintenance']
+        && isStr(data.scheduledDate, 4, 20)
+        && isStr(data.scheduledTime, 1, 20)
+        && isStr(data.assignee, 0, 80)
+        && data.priority in ['high', 'medium', 'low']
+        && isStr(data.notes, 0, 400)
+        && data.status in ['planned', 'in_progress', 'completed']
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidCalcScenario(data) {
+      return data.keys().hasAll(['ownerId', 'name', 'calculatorType', 'inputsSummary', 'projectedRevenue', 'projectedProfit', 'marginPercent', 'createdAt', 'updatedAt'])
+        && data.keys().hasOnly(['ownerId', 'name', 'calculatorType', 'inputsSummary', 'projectedRevenue', 'projectedProfit', 'marginPercent', 'createdAt', 'updatedAt'])
+        && isValidId(data.ownerId)
+        && data.ownerId == request.auth.uid
+        && isStr(data.name, 1, 120)
+        && data.calculatorType in ['Daily Profit', 'Break-Even', 'Menu Pricing', 'Catering Quote', 'Batter Yield']
+        && isStr(data.inputsSummary, 1, 300)
+        && isNumber(data.projectedRevenue) && data.projectedRevenue >= 0 && data.projectedRevenue <= 1000000000
+        && isNumber(data.projectedProfit) && data.projectedProfit >= -1000000000 && data.projectedProfit <= 1000000000
+        && isNumber(data.marginPercent) && data.marginPercent >= -1000 && data.marginPercent <= 100
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidPosOrderItem(item) {
+      return item is map
+        && item.keys().hasAll(['menuItemId', 'name', 'qty', 'unitPrice', 'packagingCost', 'note'])
+        && item.keys().hasOnly(['menuItemId', 'name', 'qty', 'unitPrice', 'packagingCost', 'note'])
+        && isValidId(item.menuItemId)
+        && isStr(item.name, 1, 120)
+        && isNumber(item.qty) && item.qty >= 1 && item.qty <= 500
+        && isNumber(item.unitPrice) && item.unitPrice >= 0 && item.unitPrice <= 1000000
+        && isNumber(item.packagingCost) && item.packagingCost >= 0 && item.packagingCost <= 100000
+        && isStr(item.note, 0, 120);
+    }
+
+    function isValidPosOrder(data) {
+      return data.keys().hasAll(['ownerId', 'orderNumber', 'orderType', 'tableLabel', 'customerName', 'items', 'subtotal', 'packagingTotal', 'discountAmount', 'taxRate', 'taxAmount', 'grandTotal', 'paymentMethod', 'kitchenNotes', 'status', 'createdAt', 'updatedAt'])
+        && data.keys().hasOnly(['ownerId', 'orderNumber', 'orderType', 'tableLabel', 'customerName', 'items', 'subtotal', 'packagingTotal', 'discountAmount', 'taxRate', 'taxAmount', 'grandTotal', 'paymentMethod', 'kitchenNotes', 'status', 'createdAt', 'updatedAt'])
+        && isValidId(data.ownerId)
+        && data.ownerId == request.auth.uid
+        && isStr(data.orderNumber, 1, 32)
+        && data.orderType in ['dine_in', 'parcel', 'catering_counter']
+        && isStr(data.tableLabel, 0, 32)
+        && isStr(data.customerName, 0, 100)
+        && data.items is list
+        && data.items.size() >= 1
+        && data.items.size() <= 40
+        && isValidPosOrderItem(data.items[0])
+        && isNumber(data.subtotal) && data.subtotal >= 0 && data.subtotal <= 100000000
+        && isNumber(data.packagingTotal) && data.packagingTotal >= 0 && data.packagingTotal <= 10000000
+        && isNumber(data.discountAmount) && data.discountAmount >= 0 && data.discountAmount <= 100000000
+        && isNumber(data.taxRate) && data.taxRate >= 0 && data.taxRate <= 28
+        && isNumber(data.taxAmount) && data.taxAmount >= 0 && data.taxAmount <= 100000000
+        && isNumber(data.grandTotal) && data.grandTotal >= 0 && data.grandTotal <= 100000000
+        && data.paymentMethod in ['UPI / QR', 'Cash', 'Bank Transfer', 'Card Settlement', 'Aggregator Payout']
+        && isStr(data.kitchenNotes, 0, 300)
+        && data.status in ['kot_open', 'preparing', 'ready', 'paid', 'cancelled']
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    // Collection Rules
+    match /users/{userId} {
+      allow get: if isSignedIn() && isValidId(userId) && request.auth.uid == userId;
+      allow list: if false;
+      allow create: if isVerifiedUser()
+        && isValidId(userId)
+        && request.auth.uid == userId
+        && isValidUserProfile(incoming())
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time;
+      allow update: if isVerifiedUser()
+        && isValidId(userId)
+        && request.auth.uid == userId
+        && isValidUserProfile(incoming())
+        && incoming().uid == existing().uid
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time
+        && (
+          incoming().diff(existing()).affectedKeys().hasOnly(['restaurantName', 'ownerName', 'currency', 'updatedAt']) ||
+          incoming().diff(existing()).affectedKeys().hasOnly(['seededDefaults', 'updatedAt'])
+        );
+      allow delete: if false;
+    }
+
+    match /menuItems/{itemId} {
+      allow get: if isSignedIn() && isValidId(itemId) && existing().ownerId == request.auth.uid;
+      allow list: if isSignedIn() && resource.data.ownerId == request.auth.uid;
+      allow create: if isVerifiedUser()
+        && isValidId(itemId)
+        && isValidMenuItem(incoming())
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time;
+      allow update: if isVerifiedUser()
+        && isValidId(itemId)
+        && isValidMenuItem(incoming())
+        && existing().ownerId == request.auth.uid
+        && existing().status != 'archived'
+        && incoming().ownerId == existing().ownerId
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time
+        && (
+          incoming().diff(existing()).affectedKeys().hasOnly(['status', 'updatedAt']) ||
+          incoming().diff(existing()).affectedKeys().hasOnly(['name', 'regionalName', 'category', 'sellingPrice', 'recipeCost', 'packagingCost', 'prepMinutes', 'monthlyUnits', 'imageKey', 'ingredients', 'status', 'updatedAt'])
+        );
+      allow delete: if isVerifiedUser() && isValidId(itemId) && existing().ownerId == request.auth.uid;
+    }
+
+    match /vendors/{vendorId} {
+      allow get: if isSignedIn() && isValidId(vendorId) && existing().ownerId == request.auth.uid;
+      allow list: if isSignedIn() && resource.data.ownerId == request.auth.uid;
+      allow create: if isVerifiedUser()
+        && isValidId(vendorId)
+        && isValidVendor(incoming())
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time;
+      allow update: if isVerifiedUser()
+        && isValidId(vendorId)
+        && isValidVendor(incoming())
+        && existing().ownerId == request.auth.uid
+        && existing().status != 'archived'
+        && incoming().ownerId == existing().ownerId
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time
+        && (
+          incoming().diff(existing()).affectedKeys().hasOnly(['outstandingBalance', 'totalPurchases', 'lastOrderDate', 'updatedAt']) ||
+          incoming().diff(existing()).affectedKeys().hasOnly(['name', 'category', 'contactPerson', 'phone', 'paymentTerms', 'outstandingBalance', 'totalPurchases', 'lastOrderDate', 'notes', 'status', 'updatedAt'])
+        );
+      allow delete: if isVerifiedUser() && isValidId(vendorId) && existing().ownerId == request.auth.uid;
+    }
+
+    match /ledgerEntries/{entryId} {
+      allow get: if isSignedIn() && isValidId(entryId) && existing().ownerId == request.auth.uid;
+      allow list: if isSignedIn() && resource.data.ownerId == request.auth.uid;
+      allow create: if isVerifiedUser()
+        && isValidId(entryId)
+        && isValidLedgerEntry(incoming())
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time;
+      allow update: if isVerifiedUser()
+        && isValidId(entryId)
+        && isValidLedgerEntry(incoming())
+        && existing().ownerId == request.auth.uid
+        && existing().status != 'voided'
+        && incoming().ownerId == existing().ownerId
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time
+        && (
+          incoming().diff(existing()).affectedKeys().hasOnly(['status', 'updatedAt']) ||
+          incoming().diff(existing()).affectedKeys().hasOnly(['title', 'entryType', 'category', 'amount', 'paymentMethod', 'entryDate', 'vendorId', 'notes', 'status', 'updatedAt'])
+        );
+      allow delete: if isVerifiedUser() && isValidId(entryId) && existing().ownerId == request.auth.uid;
+    }
+
+    match /plannerTasks/{taskId} {
+      allow get: if isSignedIn() && isValidId(taskId) && existing().ownerId == request.auth.uid;
+      allow list: if isSignedIn() && resource.data.ownerId == request.auth.uid;
+      allow create: if isVerifiedUser()
+        && isValidId(taskId)
+        && isValidPlannerTask(incoming())
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time;
+      allow update: if isVerifiedUser()
+        && isValidId(taskId)
+        && isValidPlannerTask(incoming())
+        && existing().ownerId == request.auth.uid
+        && existing().status != 'completed'
+        && incoming().ownerId == existing().ownerId
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time
+        && (
+          incoming().diff(existing()).affectedKeys().hasOnly(['status', 'updatedAt']) ||
+          incoming().diff(existing()).affectedKeys().hasOnly(['title', 'station', 'taskType', 'scheduledDate', 'scheduledTime', 'assignee', 'priority', 'notes', 'status', 'updatedAt'])
+        );
+      allow delete: if isVerifiedUser() && isValidId(taskId) && existing().ownerId == request.auth.uid;
+    }
+
+    match /calcScenarios/{scenarioId} {
+      allow get: if isSignedIn() && isValidId(scenarioId) && existing().ownerId == request.auth.uid;
+      allow list: if isSignedIn() && resource.data.ownerId == request.auth.uid;
+      allow create: if isVerifiedUser()
+        && isValidId(scenarioId)
+        && isValidCalcScenario(incoming())
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time;
+      allow update: if isVerifiedUser()
+        && isValidId(scenarioId)
+        && isValidCalcScenario(incoming())
+        && existing().ownerId == request.auth.uid
+        && incoming().ownerId == existing().ownerId
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time
+        && incoming().diff(existing()).affectedKeys().hasOnly(['name', 'calculatorType', 'inputsSummary', 'projectedRevenue', 'projectedProfit', 'marginPercent', 'updatedAt']);
+      allow delete: if isVerifiedUser() && isValidId(scenarioId) && existing().ownerId == request.auth.uid;
+    }
+
+    match /posOrders/{orderId} {
+      allow get: if isSignedIn() && isValidId(orderId) && existing().ownerId == request.auth.uid;
+      allow list: if isSignedIn() && resource.data.ownerId == request.auth.uid;
+      allow create: if isVerifiedUser()
+        && isValidId(orderId)
+        && isValidPosOrder(incoming())
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time;
+      allow update: if isVerifiedUser()
+        && isValidId(orderId)
+        && isValidPosOrder(incoming())
+        && existing().ownerId == request.auth.uid
+        && existing().status != 'paid'
+        && existing().status != 'cancelled'
+        && incoming().ownerId == existing().ownerId
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time
+        && (
+          incoming().diff(existing()).affectedKeys().hasOnly(['status', 'updatedAt']) ||
+          incoming().diff(existing()).affectedKeys().hasOnly(['orderType', 'tableLabel', 'customerName', 'items', 'subtotal', 'packagingTotal', 'discountAmount', 'taxRate', 'taxAmount', 'grandTotal', 'paymentMethod', 'kitchenNotes', 'status', 'updatedAt'])
+        );
+      allow delete: if isVerifiedUser() && isValidId(orderId) && existing().ownerId == request.auth.uid;
+    }
+  }
+}
